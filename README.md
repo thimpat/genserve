@@ -10,7 +10,7 @@ npm install genserve -g
 
 <br/>
 
-> ##### Note: Do not install from Github. 
+> ##### Note: Do not install from Github.
 > The repo version will be available after setting up the CI.
 
 ---
@@ -539,17 +539,19 @@ $> genserve set rserver --port 8080 --dir ./public
 ```shell
 $> genserve edit servers
 ```
+
 ###### Look for the rserver section in your editor and modify the options you want to change
+
 ```json
 {
-    "rserver": {
+  "rserver": {
     "serverName": "rserver",
     "defaultPage": "index.html",
     "protocol": "http://",
     "host": "localhost",
     "port": 8080,
     "staticDirs": [
-    "C:/projects/genserve/public"
+      "C:/projects/genserve/public"
     ],
     "serverUrl": "http://localhost:5050/index.html",
     "enableapi": true,
@@ -562,11 +564,11 @@ $> genserve edit servers
     "apiPort": 8080,
     "dynamicDirs": [],
     "dynamicExts": ".server.[cm]?js"
-    }
+  }
 }
 ```
 
-###### Save and close the file 
+###### Save and close the file
 
 <br/>
 
@@ -584,13 +586,232 @@ $> genserve scan
 
 💻↴
 
+![scan-genserve.gif](https://github.com/thimpat/genserve/blob/main/scan-genserve.gif)
+
+<br/>
+
+---
+
+### Serving static pages
+
+###### 1. Edit server properties you wish to setup
+
 ```shell
-active │ serverName │ serverUrl                                  │ port  │ apiPort │ staticDirs                      │ defaultPage  │ locked │ protected │                                                                          
-────── │ ────────── │ ────────────────────────────────────────── │ ───── │ ─────── │ ─────────────────────────────── │ ──────────── │ ────── │ ───────── │                                                                          
-true   │ patrice    │ http://localhost:10060/index.html          │ 10060 │ 10060   │ C:/projects/genserve/public     │ index.html   │ no     │ yes       │                                                  
-false  │ cloned     │ http://localhost:10060/public/index.html   │ 10060 │ 10060   │ C:/projects/genserve/public     │ index.html   │ no     │ yes       │                                                 
-false  │ server     │ http://localhost:58352/undefined           │ 58352 │ 58352   │ C:/projects/genserve            │ index.html   │ no     │ yes       │                                                 
-false  │ tom        │ http://localhost:10095/undefined           │ 10095 │ 10095   │ C:/projects/genserve/public     │ index.html   │ no     │ no        │
-true   │ noemi      │ http://localhost:10090/index.server.cjs    │ 10090 │ 10090   │ C:/projects/genserve/public     │ index.html   │ no     │ no        │
-false  │ rserver    │ http://localhost:5050/index.html           │ 8080  │ 8080    │ C:/projects/genserve/public     │ index.html   │ no     │ no        │
+$> genserve edit servers
 ```
+
+###### 2. Update the staticDirs key
+
+```json
+  ...
+"staticDirs": [
+"C:/path/to/public",
+"C:/path/to/public2",
+],
+...
+```
+
+###### 3. Start the server
+
+```shell
+$> genserve start myserver
+```
+
+<br/>
+
+---
+
+### Serving dynamic pages
+
+###### 1. Edit server properties you wish to setup
+
+```shell
+$> genserve edit servers
+```
+
+###### 2. Update the dynamicDirs key
+
+```json
+  ...
+"dynamicDirs": [
+"C:/path/to/dyn"
+],
+...
+```
+
+###### 3. Start the server
+
+```shell
+$> genserve start myserver
+```
+
+<br/>
+
+> ##### Note: Script must have the extension .server.js, .server.cjs or .server.mjs and must export
+> a method/function named onRequest
+
+<br/>
+
+### Example
+
+> The code below uses .cjs, but ESM can be used as well.
+> 
+> In this case change the file extension to .server.mjs
+
+<br/>
+
+###### index.server.cjs
+```js
+// Intercept all requests made to the server
+const onRequest = (req, res, {session}) =>
+{
+    // Send the response to the client
+    res.end("Awesome");
+};
+
+// Export the onRequest function.
+module.exports.onRequest = onRequest;
+```
+
+<br/>
+
+---
+
+### Run a script when the server starts
+
+> ###### When a script is launched by the server at start via openApp,
+> ###### It receives only two messages, "started" and "ended".
+>
+> The user must exit the script when desired.
+
+###### 1. Stop the server
+
+```shell
+$> genserve stop myserver
+```
+
+###### 2. Edit server properties you wish to setup
+
+```shell
+$> genserve edit servers
+```
+
+###### 3. Update the openApp key
+
+```json
+  ...
+"openApp": "C:/path/to/start-app.cjs"
+...
+```
+
+###### 4. Start the server
+
+```shell
+$> genserve start myserver
+```
+
+<br/>
+
+### Snippet example
+
+###### start-app.cjs
+```js
+/**
+ * This script is launched by the server at start.
+ * It receives only two messages, started and ended.
+ * The user must exit the script when done.
+ */
+const argv = require("minimist")(process.argv);
+
+process.on("message",
+    ({action} = {}) =>
+    {
+        if (action === "started")
+        {
+            console.log(`[${argv.server}] child started`);
+        }
+        else if (action === "ended")
+        {
+            console.log(`[${argv.server}] Child Exited`);
+            process.exit(0);
+        }
+    });
+
+console.log(`[${argv.server}] child stated`);
+
+```
+
+
+<br/>
+
+---
+
+
+### Create plugins
+
+###### 1. Stop the server
+
+```shell
+$> genserve stop myserver
+```
+
+###### 2. Edit server properties you wish to setup
+
+```shell
+$> genserve edit servers
+```
+
+###### 3. Update the plugins key
+
+```json
+  ...
+"plugins": ["C:/path/to/my-plugin.cjs"]
+...
+```
+
+###### 4. Start the server
+
+```shell
+$> genserve start myserver
+```
+
+<br/>
+
+### Snippet example
+
+###### my-plugin.cjs
+```js
+/**
+ * This plugin is launched by the server at start.
+ * It receives one message, "request".
+ * Values change in here will be taken into account by the server.
+ * The plugin dies along with the server.
+ */
+const argv = require("minimist")(process.argv);
+
+process.on("message",
+    ({action, req, res, data = {}} = {}) =>
+    {
+        if (action === "request")
+        {
+            console.log(`[${argv.server}] Child acknowledged request`);
+
+            data = data || {};
+            data.message = "cool";
+
+            const message =  {req, res, data};
+            process.send(message);
+        }
+    });
+
+(async function ()
+{
+    console.log(`[${argv.server}] child waited`);
+}());
+
+```
+
+<br/>
+
+---
+
